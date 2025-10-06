@@ -12,6 +12,7 @@ objectsPanel.innerHTML = objects.map(obj =>
 const codeEl = document.getElementById("code")
 const runBtn = document.getElementById("runBtn")
 const consoleEl = document.getElementById("console")
+
 function showOutput(type, msg) {
   const div = document.createElement("div")
   div.className = type
@@ -24,10 +25,23 @@ function clearConsole() {
 runBtn.onclick = () => {
   clearConsole()
   const code = codeEl.value
-  window.Fengari.load(code, {
-    print: msg => showOutput("print", msg),
-    warn: msg => showOutput("warn", msg)
-  })()
+  try {
+    const L = fengariWeb.luaL_newstate()
+    fengariWeb.luaL_openlibs(L)
+    // Had to print here
+    fengariWeb.lua_pushjsfunction(L, function(L) {
+      const n = fengariWeb.lua_gettop(L)
+      let args = []
+      for (let i = 1; i <= n; i++) {
+        args.push(fengariWeb.to_jsstring(fengariWeb.lua_tolstring(L, i)))
+      }
+      showOutput("print", args.join(" "))
+      return 0
+    })
+    fengariWeb.lua_setglobal(L, fengariWeb.to_luastring("print"))
+    fengariWeb.lauxlib.luaL_loadstring(L, fengariWeb.to_luastring(code))
+    fengariWeb.lua_pcall(L, 0, 0, 0)
+  } catch (err) {
+    showOutput("error", err.message)
+  }
 }
-window.Fengari = fengariWeb
-window.onerror = (msg) => showOutput("error", msg)
