@@ -19,28 +19,30 @@ function showOutput(type, msg) {
   div.textContent = msg
   consoleEl.appendChild(div)
 }
+
 function clearConsole() {
   consoleEl.innerHTML = ""
 }
+
 runBtn.onclick = () => {
   clearConsole()
   const code = codeEl.value
   try {
-    const L = fengariWeb.luaL_newstate()
-    fengariWeb.luaL_openlibs(L)
-    // Had to print here
-    fengariWeb.lua_pushjsfunction(L, function(L) {
-      const n = fengariWeb.lua_gettop(L)
+    const { lua, lauxlib, lualib, to_jsstring, to_luastring } = fengari
+    const L = lauxlib.luaL_newstate()
+    lualib.luaL_openlibs(L)
+    lua.lua_pushjsfunction(L, function(L) {
+      const n = lua.lua_gettop(L)
       let args = []
       for (let i = 1; i <= n; i++) {
-        args.push(fengariWeb.to_jsstring(fengariWeb.lua_tolstring(L, i)))
+        args.push(to_jsstring(lua.lua_tolstring(L, i)))
       }
       showOutput("print", args.join(" "))
       return 0
     })
-    fengariWeb.lua_setglobal(L, fengariWeb.to_luastring("print"))
-    fengariWeb.lauxlib.luaL_loadstring(L, fengariWeb.to_luastring(code))
-    fengariWeb.lua_pcall(L, 0, 0, 0)
+    lua.lua_setglobal(L, to_luastring("print"))
+    lauxlib.luaL_loadstring(L, to_luastring(code))
+    lua.lua_pcall(L, 0, 0, 0)
   } catch (err) {
     showOutput("error", err.message)
   }
